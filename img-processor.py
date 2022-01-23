@@ -51,20 +51,20 @@ def create_separator():
 
 def print_page_name(name, nfont):
     namelen=len(name)
-    name_width = round(namelen * font_size * 0.7)
+    name_width = round(namelen * font_size * 0.8)
     name_height = font_size + 20
     txt= Image.new('L', (name_width, name_height) )
     d = ImageDraw.Draw(txt)
     d.text(( 0, 0), text_transform(name.upper()), font=nfont, fill=255)
     w = txt.rotate(90,  expand=1)
 
-    return w, name_width, name_height
+    return w, name_width, name_height, namelen
 
 def print_cat_name(name, nfont):
     print(name.lower())
     cat = code_name_dictionary.get(name.lower())
     cat_len = len(cat)
-    cat_width = round(cat_len * (font_size * 0.8))
+    cat_width = round(cat_len * font_size * 0.8)
     cat_height = font_size + 20
     txt= Image.new('L', (cat_width, cat_height) )
     d = ImageDraw.Draw(txt)
@@ -96,11 +96,16 @@ def create_lookbook_image(image_path, name, pgnmbr):
     total_height = init_text_height
     padding = word_spacing
 
+    page_const = 290
+    if pgnmbr > 9:
+        page_const = 328
+    if pgnmbr > 99:
+        page_const = 358
     page_number = print_page_num(pgnmbr, font)
     page_number_img = page_number[0]
     page_number_height = page_number[1]
     page_number_len = page_number[2]
-    image.paste( ImageOps.colorize(page_number_img, (0,0,0), (0,0,0)), (width - (300 - page_number_len * 10), height - (total_height + page_number_height)), page_number_img)
+    image.paste( ImageOps.colorize(page_number_img, (0,0,0), (0,0,0)), (width - (page_const - page_number_len * 10), height - (total_height + page_number_height)), page_number_img)
 
     total_height += page_number_height + padding + 60
 
@@ -113,27 +118,29 @@ def create_lookbook_image(image_path, name, pgnmbr):
         page_name = page_main_name[0]
         page_name_height = page_main_name[1]
         page_name_width = page_main_name[2]
-        image.paste( ImageOps.colorize(page_name, (0,0,0), (0,0,0)), (width - (190 + page_name_width), height - (total_height + page_name_height)), page_name)
-        total_height += (page_name_height)
+        name_len = page_main_name[3]
+
+        image.paste( ImageOps.colorize(page_name, (0,0,0), (0,0,0)), (width - (180 + page_name_width), height - (total_height + name_len * 76)), page_name)
+        total_height += ( name_len * 76) + 30
 
         cat_name, cat_height, cat_width, cat =  print_cat_name(item, font)
         # image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (210 + cat_width), height - (total_height + cat_height)), cat_name)
         if len(cat) == 3:
-            constw = 250
+            constw = 225
+        elif len(cat) == 4:
+            constw = 265
         else:
-            constw = 210
-        if itemn == 0:
-            if pgnmbr == 1:
-                image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height)), cat_name)
-            else:
-                image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 30)), cat_name)
-        if itemn == 1:
-            image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height)), cat_name)
+            constw = 299
+        if itemn == 1 and pgnmbr == 1:
+            image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 50)), cat_name)
+        else:
+            image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 10)), cat_name)
+
         total_height += (cat_height + padding + 10)
 
         if itemn != len(items) - 1:
             separator_char, separator_height, separator_width = a_separator
-            image.paste( ImageOps.colorize(separator_char, (0,0,0), (0,0,0)), (width - (210 + cat_width - 8), height - (total_height + 20)), separator_char)
+            image.paste( ImageOps.colorize(separator_char, (0,0,0), (0,0,0)), (width - (200 + cat_width - 8), height - (total_height + 50)), separator_char)
     return image
 
 # Get list of pdfs in directory
@@ -158,7 +165,7 @@ def main():
     ready_images_list = []
     final_pdfs = 1
 
-    images_num = 11
+    images_num = len(image_names)
 
     for i in range(images_num):
         # Check number at the start
