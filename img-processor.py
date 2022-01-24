@@ -11,7 +11,7 @@ dependencies_folder = '../dependencies/'
 sys.path.append(dependencies_folder)
 
 # Import Name Dictionary
-from name_dict import name_dictionary, code_name_dictionary
+from name_dict import name_dictionary, code_name_dictionary, length_dictionary
 from settings import output_file_name, font_family, font_size, pdf_quality, page_number, init_text_height, word_spacing, separator_size
 
 # Returns image name given its number
@@ -51,7 +51,8 @@ def create_separator():
 
 def print_page_name(name, nfont):
     namelen=len(name)
-    name_width = round(namelen * font_size * 0.8)
+
+    name_width = length_dictionary.get(namelen)
     name_height = font_size + 20
     txt= Image.new('L', (name_width, name_height) )
     d = ImageDraw.Draw(txt)
@@ -65,6 +66,7 @@ def print_cat_name(name, nfont):
     cat = code_name_dictionary.get(name.lower())
     cat_len = len(cat)
     cat_width = round(cat_len * font_size * 0.8)
+
     cat_height = font_size + 20
     txt= Image.new('L', (cat_width, cat_height) )
     d = ImageDraw.Draw(txt)
@@ -96,9 +98,9 @@ def create_lookbook_image(image_path, name, pgnmbr):
     total_height = init_text_height
     padding = word_spacing
 
-    page_const = 290
+    page_const = 285
     if pgnmbr > 9:
-        page_const = 328
+        page_const = 323
     if pgnmbr > 99:
         page_const = 358
     page_number = print_page_num(pgnmbr, font)
@@ -119,28 +121,31 @@ def create_lookbook_image(image_path, name, pgnmbr):
         page_name_height = page_main_name[1]
         page_name_width = page_main_name[2]
         name_len = page_main_name[3]
+        text_height = length_dictionary.get(name_len)
 
-        image.paste( ImageOps.colorize(page_name, (0,0,0), (0,0,0)), (width - (180 + page_name_width), height - (total_height + name_len * 76)), page_name)
-        total_height += ( name_len * 76) + 30
+        image.paste( ImageOps.colorize(page_name, (0,0,0), (0,0,0)), (width - (180 + page_name_width), height - (total_height + text_height)), page_name)
+        total_height += text_height + 30
 
         cat_name, cat_height, cat_width, cat =  print_cat_name(item, font)
         # image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (210 + cat_width), height - (total_height + cat_height)), cat_name)
         if len(cat) == 3:
-            constw = 225
+            constw = 229
         elif len(cat) == 4:
             constw = 265
         else:
-            constw = 299
+            constw = 200
+        if 'I' in cat:
+            constw -= 15
         if itemn == 1 and pgnmbr == 1:
-            image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 50)), cat_name)
+            image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 10)), cat_name)
         else:
             image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 10)), cat_name)
-
-        total_height += (cat_height + padding + 10)
+        cat_height = 160
+        total_height += (cat_height + padding)
 
         if itemn != len(items) - 1:
             separator_char, separator_height, separator_width = a_separator
-            image.paste( ImageOps.colorize(separator_char, (0,0,0), (0,0,0)), (width - (200 + cat_width - 8), height - (total_height + 50)), separator_char)
+            image.paste( ImageOps.colorize(separator_char, (0,0,0), (0,0,0)), (width - (200 + cat_width - 8), height - (total_height + 30)), separator_char)
     return image
 
 # Get list of pdfs in directory
@@ -156,10 +161,22 @@ def merge_pdfs(pdf_list):
     merger.write(output_file_name + '.pdf')
     merger.close()
 
+def order_list(mlist):
+    ordered_list = []
+    for i in range(len(mlist)):
+        for l in mlist:
+            if find_chars_until_dot(l) == str(i):
+                ordered_list.append(l)
+    return ordered_list
+
+def get_image_path(name, path_list):
+    return [ f for f in path_list if name in f][0]
+
 def main():
     
     # Get image names and paths
     image_names, image_paths = get_image_paths()
+    image_names = order_list(image_names)
 
     # Initiate image list
     ready_images_list = []
@@ -175,9 +192,9 @@ def main():
             print('Error: Image name doesn\'t start with a number --> ' + str(i))
         # Get image name from number        
         image_name = get_image_name(number)
+        image_path = get_image_path(image_names[i], image_paths)
         # Print image name on image
-        
-        ready_image = create_lookbook_image(image_paths[i], image_name, i + 1)
+        ready_image = create_lookbook_image(image_path, image_name, i + 1)
         # Add image in images list
         ready_images_list.append(ready_image)
         # print(i)
