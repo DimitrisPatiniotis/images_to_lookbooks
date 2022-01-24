@@ -3,6 +3,7 @@ from os import listdir, path, rename, remove
 import sys
 import re
 from PyPDF2 import PdfFileMerger
+import PyPDF2
 
 # Append image and dependencies folder to path
 image_folder = '../images/'
@@ -12,7 +13,7 @@ sys.path.append(dependencies_folder)
 
 # Import Name Dictionary
 from name_dict import name_dictionary, code_name_dictionary, length_dictionary
-from settings import output_file_name, font_family, font_size, pdf_quality, page_number, init_text_height, word_spacing, separator_size
+from settings import output_file_name, font_family, font_size, pdf_quality, page_number, init_text_height, word_spacing, separator_size, front_cover_multip, back_cover_multip, no_name_list, scale_ratio
 
 # Returns image name given its number
 def get_image_name(number):
@@ -27,6 +28,7 @@ def find_chars_until_dot(str):
 def get_image_paths():
     image_name = [ f for f in listdir(image_folder) if path.isfile(path.join(image_folder, f))]
     image_path = [image_folder + f for f in listdir(image_folder) if path.isfile(path.join(image_folder, f))]
+    
     return image_name, image_path
 
 # Turn list of images into a pdf
@@ -37,6 +39,16 @@ def get_pdf(image_list):
 def text_transform(text):
     return text.replace('+', '|')
 
+def pdf_scale(pdf, scale_ratio):
+    pdf = PyPDF2.PdfFileReader(pdf)
+    writer = PyPDF2.PdfFileWriter()
+    for i in range(pdf.getNumPages()):
+        page = pdf.getPage(i)
+        page.scaleBy(scale_ratio) 
+  # create a writer to save the updated results
+        writer.addPage(page)
+    with open("lookbook_scaled.pdf", "wb+") as f:
+        writer.write(f)
 
 def create_separator():
     font = ImageFont.truetype(font_family, separator_size)
@@ -98,9 +110,9 @@ def create_lookbook_image(image_path, name, pgnmbr):
     total_height = init_text_height
     padding = word_spacing
 
-    page_const = 285
+    page_const = 287 
     if pgnmbr > 9:
-        page_const = 323
+        page_const = 328
     if pgnmbr > 99:
         page_const = 358
     page_number = print_page_num(pgnmbr, font)
@@ -112,40 +124,45 @@ def create_lookbook_image(image_path, name, pgnmbr):
     total_height += page_number_height + padding + 60
 
     a_separator = create_separator()
+    if pgnmbr not in no_name_list:
+        for itemn in range(len(items)):
 
-    for itemn in range(len(items)):
-        item = items[itemn]
+            item = items[itemn]
 
-        page_main_name = print_page_name(item, font)
-        page_name = page_main_name[0]
-        page_name_height = page_main_name[1]
-        page_name_width = page_main_name[2]
-        name_len = page_main_name[3]
-        text_height = length_dictionary.get(name_len)
+            page_main_name = print_page_name(item, font)
+            page_name = page_main_name[0]
+            page_name_height = page_main_name[1]
+            page_name_width = page_main_name[2]
+            name_len = page_main_name[3]
+            text_height = length_dictionary.get(name_len)
 
-        image.paste( ImageOps.colorize(page_name, (0,0,0), (0,0,0)), (width - (180 + page_name_width), height - (total_height + text_height)), page_name)
-        total_height += text_height + 30
+            image.paste( ImageOps.colorize(page_name, (0,0,0), (0,0,0)), (width - (180 + page_name_width), height - (total_height + text_height)), page_name)
+            total_height += text_height + 30
 
-        cat_name, cat_height, cat_width, cat =  print_cat_name(item, font)
-        # image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (210 + cat_width), height - (total_height + cat_height)), cat_name)
-        if len(cat) == 3:
-            constw = 229
-        elif len(cat) == 4:
-            constw = 265
-        else:
-            constw = 200
-        if 'I' in cat:
-            constw -= 15
-        if itemn == 1 and pgnmbr == 1:
-            image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 10)), cat_name)
-        else:
-            image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 10)), cat_name)
-        cat_height = 160
-        total_height += (cat_height + padding)
+            cat_name, cat_height, cat_width, cat =  print_cat_name(item, font)
+            # image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (210 + cat_width), height - (total_height + cat_height)), cat_name)
+            if len(cat) == 3:
+                constw = 229
+            elif len(cat) == 4:
+                constw = 265
+            else:
+                constw = 200
+            if 'I' in cat:
+                constw -= 15
+            if 'J' in cat:
+                constw -= 8
+            if 'W' or 'M' in cat:
+                constw += 10
+            if itemn == 1 and pgnmbr == 1:
+                image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 10)), cat_name)
+            else:
+                image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 10)), cat_name)
+            cat_height = 160
+            total_height += (cat_height + padding)
 
-        if itemn != len(items) - 1:
-            separator_char, separator_height, separator_width = a_separator
-            image.paste( ImageOps.colorize(separator_char, (0,0,0), (0,0,0)), (width - (200 + cat_width - 8), height - (total_height + 30)), separator_char)
+            if itemn != len(items) - 1:
+                separator_char, separator_height, separator_width = a_separator
+                image.paste( ImageOps.colorize(separator_char, (0,0,0), (0,0,0)), (width - (200 + cat_width - 8), height - (total_height + 30)), separator_char)
     return image
 
 # Get list of pdfs in directory
@@ -177,6 +194,15 @@ def main():
     # Get image names and paths
     image_names, image_paths = get_image_paths()
     image_names = order_list(image_names)
+    
+    start_image_path = '../images/wrappers/start.jpg'
+    end_image_path = '../images/wrappers/end.jpg'
+
+    startimage = Image.open(start_image_path)
+    startimg = startimage.convert('RGB')
+    width, height = startimg.size
+    startimg = startimg.resize((round(front_cover_multip*width), round(front_cover_multip*height)), Image.ANTIALIAS)
+    startimg.save("0.output.pdf", save_all=True, quality = pdf_quality)
 
     # Initiate image list
     ready_images_list = []
@@ -184,7 +210,7 @@ def main():
 
     images_num = len(image_names)
 
-    for i in range(images_num):
+    for i in range(10):
         # Check number at the start
         try:
             number = int(find_chars_until_dot(image_names[i]))
@@ -209,8 +235,18 @@ def main():
             ready_images_list = []
             final_pdfs += 1
         print(i)
+
     # Concatinate all pdfs, if more than 1 exist
     pdf_list = get_list_of_pdfs()
+
+    endimage = Image.open(end_image_path)
+    endimg = endimage.convert('RGB')
+    width, height = endimg.size
+    endimg = endimg.resize((round(back_cover_multip*width), round(back_cover_multip*height)), Image.ANTIALIAS)
+
+    endimg.save("{}.output.pdf".format(len(pdf_list)), save_all=True, quality = pdf_quality)
+    pdf_list = get_list_of_pdfs()
+    pdf_list = order_list(pdf_list)
     if len(pdf_list) > 1:
         merge_pdfs(pdf_list)
         # Delete temp pdfs
@@ -219,6 +255,10 @@ def main():
                 remove(pdf)
     elif len(pdf_list) == 1:
         rename(pdf_list[0], output_file_name + '.pdf')
+
+    pdf_scale(output_file_name + '.pdf', scale_ratio)
+    remove(output_file_name + '.pdf')
+    
 
 if __name__ == '__main__':
     main()
