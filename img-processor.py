@@ -13,8 +13,8 @@ dependencies_folder = '../dependencies/'
 sys.path.append(dependencies_folder)
 
 # Import Name Dictionary
-from name_dict import name_dictionary, code_name_dictionary, length_dictionary
-from settings import custom_list, output_file_name, font_family, font_size, pdf_quality, page_number, init_text_height, word_spacing, separator_size, front_cover_multip, back_cover_multip, no_name_list, scale_ratio
+from name_dict import name_dictionary, code_name_dictionary, length_dictionary, width_dictionary
+from settings import forb_list, custom_list, output_file_name, font_family, font_size, pdf_quality, page_number, init_text_height, word_spacing, separator_size, front_cover_multip, back_cover_multip, no_name_list, scale_ratio
 
 # Returns image name given its number
 def get_image_name(number):
@@ -31,6 +31,8 @@ def get_image_paths():
     image_path = [image_folder + f for f in listdir(image_folder) if path.isfile(path.join(image_folder, f))]
     if len(custom_list) == 0:
         image_name = order_list(image_name)
+        for i in forb_list:
+            del image_name[i-1]
         return image_name, image_path
     if len(custom_list) > 0:
         image_namec = []
@@ -40,12 +42,10 @@ def get_image_paths():
             pathc = image_folder + im_name_match
             image_namec.append(im_name_match)
             image_pathc.append(pathc)
+            # for i in forb_list:
+            #     del image_name[i-1]
         return image_namec,image_pathc
             
-            
-
-
-
 # Turn list of images into a pdf
 def get_pdf(image_list):
     image_list[0].save("{}.pdf".format(output_file_name), save_all=True, append_images=images[1:], quality = 90)
@@ -89,7 +89,6 @@ def print_page_name(name, nfont):
     return w, name_width, name_height, namelen
 
 def print_cat_name(name, nfont):
-    print(name.lower())
     cat = code_name_dictionary.get(name.lower())
     cat_len = len(cat)
     cat_width = round(cat_len * font_size * 0.8)
@@ -127,7 +126,7 @@ def create_lookbook_image(image_path, name, pgnmbr):
 
     page_const = 287 
     if pgnmbr > 9:
-        page_const = 328
+        page_const = 324
     if pgnmbr > 99:
         page_const = 358
     page_number = print_page_num(pgnmbr, font)
@@ -156,24 +155,10 @@ def create_lookbook_image(image_path, name, pgnmbr):
 
             cat_name, cat_height, cat_width, cat =  print_cat_name(item, font)
             # image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (210 + cat_width), height - (total_height + cat_height)), cat_name)
-            if len(cat) == 3:
-                constw = 229
-            elif len(cat) == 4:
-                constw = 265
-            else:
-                constw = 200
-            if 'I' in cat:
-                constw -= 15
-            if 'J' in cat:
-                constw -= 8
-            if 'W' or 'M' in cat:
-                constw += 10
-            if 'A' in cat:
-                constw -= 10
-            if itemn == 1 and pgnmbr == 1:
-                image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 10)), cat_name)
-            else:
-                image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - (constw + cat_width), height - (total_height + 10)), cat_name)
+            constw = width_dictionary.get(cat)
+
+            image.paste( ImageOps.colorize(cat_name, (0,0,0), (0,0,0)), (width - constw, height - (total_height + 10)), cat_name)
+            del constw
             cat_height = 160
             total_height += (cat_height + padding)
 
@@ -206,6 +191,8 @@ def order_list(mlist):
 def get_image_path(name, path_list):
     return [ f for f in path_list if name in f][0]
 
+
+
 def main():
     
     # Get image names and paths
@@ -226,7 +213,7 @@ def main():
     final_pdfs = 1
 
     images_num = len(image_names)
-
+    page_counter = 1
     for i in range(images_num):
         # Check number at the start
         try:
